@@ -1,0 +1,30 @@
+# UECda Server Configuration
+
+server:
+  host: "0.0.0.0"
+  port: 42485
+  protocol_version: 20070
+
+game:
+  num_games: 100
+  num_players: 5
+
+rules:
+  # Required rules (always enabled)
+  revolution: true      # 革命（4枚ペアまたは5枚階段）
+  eight_stop: true      # 8切り
+  lock: true            # 縛り
+  card_exchange: true   # カード交換
+  spade3_joker: true    # スペ3返し
+  sennichite: true      # 千日手（20連続パス）
+
+  # Optional rules
+  eleven_back: false    # 11バック
+  five_skip: false      # 5飛び
+  six_reverse: false    # 6リバース
+  seat_change: false    # 席替え
+  seat_change_interval: 3  # 席替え間隔
+
+logging:
+  level: "INFO"
+  show_hands: false     # Show player hands in output

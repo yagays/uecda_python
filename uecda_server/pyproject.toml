@@ -1,0 +1,29 @@
+[project]
+name = "uecda-server"
+version = "0.1.0"
+description = "UECda Daifugo/Daihinmin card game server in Python"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.12.5",
+    "pyyaml>=6.0.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+    "ruff>=0.14.6",
+]
+
+[project.scripts]
+uecda-server = "uecda_server.main:main"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
