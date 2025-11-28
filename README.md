@@ -64,14 +64,8 @@ uecda_python/
 ├── uecda_client/                # Pythonクライアント実装
 │   ├── README.md                # クライアント詳細ドキュメント
 │   └── ...
-├── scripts/                     # 実行スクリプト
-│   └── run_game.sh              # サーバー+クライアント一括実行
-├── tndhm_devkit_c-20221111/     # C言語リファレンス実装
-│   ├── client/                  # Cクライアント
-│   └── server/                  # Cサーバー
-└── docs/                        # UECda公式ドキュメント
-    ├── UECda-2023 UEC標準ルール.html
-    └── UECda-2023 通信のプロトコル.html
+└── scripts/                     # 実行スクリプト
+    └── run_game.sh              # サーバー+クライアント一括実行
 ```
 
 ## 詳細ドキュメント
@@ -86,6 +80,10 @@ uecda_python/
 Python実装はC言語リファレンス実装と相互運用可能です：
 
 ```bash
+# C言語リファレンス実装のダウンロードと展開
+curl -O https://flute.u-shizuoka-ken.ac.jp/daihinmin/2023/files/tndhm_devkit_c-20221111.tar.gz
+tar xzf tndhm_devkit_c-20221111.tar.gz
+
 # Cクライアントのビルド
 cd tndhm_devkit_c-20221111/client
 make
