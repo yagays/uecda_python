@@ -20,6 +20,7 @@ def generate_log_filename(log_dir: str, players: list[Player]) -> str:
     """Generate log filename with timestamp and player names.
 
     Format: {ISO timestamp}_{player1}_{player2}_..._{playerN}.jsonl
+    Player names are sorted alphabetically.
 
     Args:
         log_dir: Directory for log files.
@@ -29,7 +30,8 @@ def generate_log_filename(log_dir: str, players: list[Player]) -> str:
         Full path to log file.
     """
     timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
-    player_names = "_".join(p.name for p in players)
+    sorted_names = sorted(p.name for p in players)
+    player_names = "_".join(sorted_names)
     filename = f"{timestamp}_{player_names}.jsonl"
     return str(Path(log_dir) / filename)
 
