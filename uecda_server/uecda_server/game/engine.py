@@ -1,10 +1,13 @@
 """Game engine for UECda."""
 
+from __future__ import annotations
+
 import logging
 import random
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 from uecda_server.config import Config
+from uecda_server.logging import GameLogger
 from uecda_server.models.card import CardSet, Rank, create_full_deck
 from uecda_server.models.game_state import CardType, GameState
 from uecda_server.models.player import Player, PlayerRank
@@ -13,6 +16,9 @@ from uecda_server.network.server import GameServer
 
 from .analyzer import CardAnalyzer
 from .validator import MoveValidator
+
+if TYPE_CHECKING:
+    from .analyzer import CardAnalysis
 
 logger = logging.getLogger(__name__)
 
@@ -32,16 +38,19 @@ class GameEngine:
         self,
         server: GameServer,
         config: Config | None = None,
+        game_logger: GameLogger | None = None,
     ):
         """Initialize game engine.
 
         Args:
             server: GameServer instance
             config: Configuration (uses defaults if not provided)
+            game_logger: GameLogger instance for detailed logging
         """
         self.server = server
         self.config = config or Config()
         self.rules = self.config.rules
+        self.game_logger = game_logger
 
         self.analyzer = CardAnalyzer()
         self.validator = MoveValidator(self.analyzer)
@@ -85,6 +94,10 @@ class GameEngine:
         self._total_games = num_games  # Store for use in run_game
         points: dict[int, int] = {p.player_id: 0 for p in self.players}
 
+        # Log session start
+        if self.game_logger:
+            self.game_logger.log_session_start(self.players)
+
         for game_num in range(1, num_games + 1):
             self.state.game_number = game_num
             logger.info(f"Starting game {game_num}/{num_games}")
@@ -100,6 +113,12 @@ class GameEngine:
             for rank, player_id in enumerate(finish_order):
                 self.players[player_id].rank = PlayerRank(rank)
 
+        # Log session end
+        if self.game_logger:
+            # Calculate ranking from final points
+            ranking = sorted(points.keys(), key=lambda p: points[p], reverse=True)
+            self.game_logger.log_session_end(num_games, points, ranking)
+
         return points
 
     def run_game(self) -> list[int]:
@@ -110,6 +129,15 @@ class GameEngine:
         """
         # Initialize game
         self._init_game()
+
+        # Log game start (before exchange, with initial hands)
+        if self.game_logger:
+            self.game_logger.log_game_start(
+                self.state.game_number,
+                self.hands,
+                self.players,
+                self.state.current_player,
+            )
 
         # Card exchange phase - always send initial hand info
         self._send_initial_hands()
@@ -163,6 +191,20 @@ class GameEngine:
                 self._process_valid_move(player, submitted_cards, analysis, joker_positions)
                 self.server.send_accept(player)
 
+                # Log turn (play)
+                if self.game_logger:
+                    self.game_logger.log_turn(
+                        self.state.game_number,
+                        self.state.turn_number,
+                        current,
+                        "play",
+                        submitted_cards,
+                        analysis.card_type,
+                        self.state.field.cards,
+                        self.hands,
+                        self.state,
+                    )
+
                 # Check for finish
                 if self.hands[current].count() == 0:
                     player.has_finished = True
@@ -170,11 +212,35 @@ class GameEngine:
                     finish_order.append(current)
                     self.state.finished_count += 1
                     logger.info(f"Player {current} finished in position {len(finish_order)}")
+
+                    # Log player finish
+                    if self.game_logger:
+                        self.game_logger.log_special(
+                            self.state.game_number,
+                            self.state.turn_number,
+                            "player_finish",
+                            current,
+                            {"position": len(finish_order)},
+                        )
             else:
                 # Pass
                 player.has_passed = True
                 self.state.consecutive_passes += 1
                 self.server.send_reject(player)
+
+                # Log turn (pass)
+                if self.game_logger:
+                    self.game_logger.log_turn(
+                        self.state.game_number,
+                        self.state.turn_number,
+                        current,
+                        "pass",
+                        CardSet(),  # Empty cards for pass
+                        CardType.EMPTY,
+                        self.state.field.cards,
+                        self.hands,
+                        self.state,
+                    )
 
             # Send field info to all players
             self._send_all_field_info()
@@ -182,6 +248,16 @@ class GameEngine:
             # Check for round end (all passed)
             if self._check_all_passed():
                 self._clear_field()
+
+                # Log field clear
+                if self.game_logger:
+                    self.game_logger.log_special(
+                        self.state.game_number,
+                        self.state.turn_number,
+                        "field_clear",
+                        self.state.current_player,
+                        {"reason": "all_passed"},
+                    )
 
             # Check for sennichite
             if self.state.consecutive_passes >= SENNICHITE_THRESHOLD:
@@ -220,6 +296,14 @@ class GameEngine:
             all_done = self.state.game_number == getattr(self, "_total_games", 1)
             for p in self.players:
                 self.server.send_game_end(p, all_games_end=all_done)
+
+        # Log game end
+        if self.game_logger:
+            self.game_logger.log_game_end(
+                self.state.game_number,
+                finish_order,
+                self.players,
+            )
 
         if self._on_game_end:
             self._on_game_end(self.state.game_number, finish_order)
@@ -440,6 +524,9 @@ class GameEngine:
             players_by_rank[p.rank] = p
             logger.debug(f"Player {p.player_id} ({p.name}) has rank {p.rank}")
 
+        # Track exchanges for logging
+        exchanges: list[dict] = []
+
         # Exchange 1: 大富豪 -> 大貧民 (2 cards)
         if PlayerRank.DAIFUGO in players_by_rank and PlayerRank.DAIHINMIN in players_by_rank:
             daifugo = players_by_rank[PlayerRank.DAIFUGO]
@@ -454,6 +541,13 @@ class GameEngine:
             for card in daifugo_cards:
                 self.hands[daifugo.player_id].remove(card)
                 self.hands[daihinmin.player_id].add(card)
+
+            # Record exchange for logging
+            exchanges.append({
+                "from": daifugo.player_id,
+                "to": daihinmin.player_id,
+                "cards": daifugo_cards,
+            })
 
             logger.info(
                 f"Exchange: Player {daifugo.player_id} gave 2 cards to "
@@ -477,12 +571,27 @@ class GameEngine:
                 self.hands[fugo.player_id].remove(card)
                 self.hands[hinmin.player_id].add(card)
 
+            # Record exchange for logging
+            exchanges.append({
+                "from": fugo.player_id,
+                "to": hinmin.player_id,
+                "cards": fugo_cards,
+            })
+
             logger.info(
                 f"Exchange: Player {fugo.player_id} gave 1 card to "
                 f"Player {hinmin.player_id}"
             )
         else:
             logger.warning("Could not find FUGO or HINMIN for exchange")
+
+        # Log all exchanges
+        if self.game_logger and exchanges:
+            self.game_logger.log_exchange(
+                self.state.game_number,
+                exchanges,
+                self.hands,
+            )
 
     def _get_exchange_cards_from_high(
         self,
@@ -609,7 +718,7 @@ class GameEngine:
 
         logger.debug(f"Player {pid} played: {cards}")
 
-    def _apply_special_rules(self, analysis: "CardAnalysis") -> None:
+    def _apply_special_rules(self, analysis: CardAnalysis) -> None:
         """Apply special rules based on played cards."""
         revolution = self.state.effective_revolution()
 
@@ -623,6 +732,16 @@ class GameEngine:
         if self.rules.eight_stop:
             if self.analyzer.check_special_card(analysis, RANK_EIGHT, revolution):
                 logger.info("8切り! Field cleared.")
+
+                # Log eight stop
+                if self.game_logger:
+                    self.game_logger.log_special(
+                        self.state.game_number,
+                        self.state.turn_number,
+                        "eight_stop",
+                        self.state.last_player,
+                    )
+
                 self._clear_field()
 
         # 革命 (Revolution)
@@ -638,6 +757,16 @@ class GameEngine:
                 rev_status = "ON" if self.state.is_revolution else "OFF"
                 logger.info(f"革命! Revolution is now {rev_status}")
 
+                # Log revolution
+                if self.game_logger:
+                    self.game_logger.log_special(
+                        self.state.game_number,
+                        self.state.turn_number,
+                        "revolution",
+                        self.state.last_player,
+                        {"is_revolution": self.state.is_revolution},
+                    )
+
         # 11バック (Eleven Back)
         if self.rules.eleven_back:
             if self.analyzer.check_special_card(analysis, RANK_ELEVEN, revolution):
@@ -645,7 +774,17 @@ class GameEngine:
                 back_status = "ON" if self.state.is_eleven_back else "OFF"
                 logger.info(f"11バック! Eleven back is now {back_status}")
 
-    def _update_lock(self, analysis: "CardAnalysis") -> None:
+                # Log eleven back
+                if self.game_logger:
+                    self.game_logger.log_special(
+                        self.state.game_number,
+                        self.state.turn_number,
+                        "eleven_back",
+                        self.state.last_player,
+                        {"is_eleven_back": self.state.is_eleven_back},
+                    )
+
+    def _update_lock(self, analysis: CardAnalysis) -> None:
         """Update lock (shibari) state."""
         if not self.rules.lock:
             return
@@ -657,9 +796,18 @@ class GameEngine:
             field.lock_count = 0
         elif analysis.suit_pattern == field.suit_pattern:
             field.lock_count += 1
-            if field.lock_count >= 2:
+            if field.lock_count >= 2 and not field.is_locked:
                 field.is_locked = True
                 logger.info("縛り! Lock activated.")
+
+                # Log lock activation
+                if self.game_logger:
+                    self.game_logger.log_special(
+                        self.state.game_number,
+                        self.state.turn_number,
+                        "lock",
+                        self.state.last_player,
+                    )
         else:
             field.lock_count = 1
             field.is_locked = False
@@ -722,7 +870,3 @@ class GameEngine:
             self.players[pid].finish_order = len(current_order) - 1
 
         return current_order
-
-
-# Import for type hints
-from .analyzer import CardAnalysis  # noqa: E402

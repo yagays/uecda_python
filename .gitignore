@@ -253,3 +253,6 @@ CLAUDE.md
 
 # Reference Implementation
 tndhm_devkit_c-20221111/
+
+# Game logs
+logs/*.jsonl

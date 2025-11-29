@@ -7,6 +7,7 @@ from pathlib import Path
 
 from uecda_server.config import load_config
 from uecda_server.game.engine import GameEngine
+from uecda_server.logging import GameLogConfig, GameLogger
 from uecda_server.network.server import GameServer
 from uecda_server.utils.logger import GameDisplay, setup_logging
 
@@ -51,6 +52,11 @@ def main() -> int:
         action="store_true",
         help="Show player hands in output",
     )
+    parser.add_argument(
+        "--game-log",
+        type=Path,
+        help="Path to game log file (JSONL format)",
+    )
 
     args = parser.parse_args()
 
@@ -67,6 +73,12 @@ def main() -> int:
     if args.show_hands:
         config.logging.show_hands = True
 
+    # Setup game log config (CLI argument overrides config file)
+    game_log_config = GameLogConfig(
+        enabled=args.game_log is not None or config.game_log.enabled,
+        output_path=str(args.game_log) if args.game_log else config.game_log.output_path,
+    )
+
     # Setup logging
     setup_logging(config.logging.level)
 
@@ -77,6 +89,8 @@ def main() -> int:
     print(f"Port: {config.server.port}")
     print(f"Games: {config.game.num_games}")
     print(f"Players: {config.game.num_players}")
+    if game_log_config.enabled:
+        print(f"Game log: {game_log_config.output_path}")
     print()
 
     # Create and start server
@@ -93,23 +107,25 @@ def main() -> int:
             )
             display.print_all_connected(players)
 
-            # Create game engine
-            engine = GameEngine(server, config)
+            # Create game logger
+            with GameLogger(game_log_config) as game_logger:
+                # Create game engine
+                engine = GameEngine(server, config, game_logger)
 
-            # Set up display callbacks
-            def on_game_end(game_num: int, finish_order: list[int]) -> None:
-                display.print_game_end(game_num, finish_order, players)
+                # Set up display callbacks
+                def on_game_end(game_num: int, finish_order: list[int]) -> None:
+                    display.print_game_end(game_num, finish_order, players)
 
-            engine.set_callbacks(on_game_end=on_game_end)
+                engine.set_callbacks(on_game_end=on_game_end)
 
-            # Run games
-            print(f"Starting {config.game.num_games} games...")
-            display.print_separator()
+                # Run games
+                print(f"Starting {config.game.num_games} games...")
+                display.print_separator()
 
-            points = engine.run_games()
+                points = engine.run_games()
 
-            # Print final results
-            display.print_final_results(points, players)
+                # Print final results
+                display.print_final_results(points, players)
 
             return 0
 

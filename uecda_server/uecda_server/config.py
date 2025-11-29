@@ -47,6 +47,13 @@ class LoggingConfig(BaseModel):
     show_hands: bool = False
 
 
+class GameLogConfig(BaseModel):
+    """Game log configuration for detailed replay logs."""
+
+    enabled: bool = False
+    output_path: str = "game_log.jsonl"
+
+
 class Config(BaseModel):
     """Root configuration."""
 
@@ -54,6 +61,7 @@ class Config(BaseModel):
     game: GameConfig = GameConfig()
     rules: RulesConfig = RulesConfig()
     logging: LoggingConfig = LoggingConfig()
+    game_log: GameLogConfig = GameLogConfig()
 
 
 def load_config(path: Path | str | None = None) -> Config:
