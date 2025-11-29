@@ -1,0 +1,93 @@
+# UECda トーナメント用 Docker Compose設定
+#
+# 使い方:
+#   1. 参加者のリポジトリを ./participants/ 以下にclone
+#      git clone https://github.com/participant/their-client ./participants/team-alpha
+#   2. このファイルの team-alpha 等のbuild contextを参加者のパスに設定
+#   3. docker compose -f docker-compose.tournament.yml up --build
+#
+# 注意:
+#   - 参加者のリポジトリはuecda_clientと同じ構成であること
+#   - Dockerfileが含まれていること
+
+services:
+  # ゲームサーバー
+  uecda-server:
+    build:
+      context: ./uecda_server
+      dockerfile: Dockerfile
+    container_name: uecda-server
+    ports:
+      - "42485:42485"
+    command: ["--num-games", "${UECDA_NUM_GAMES:-100}", "-v"]
+    networks:
+      - uecda-network
+
+  # 参加者1: Team Alpha
+  team-alpha:
+    build:
+      context: ./participants/team-alpha  # 参加者のリポジトリパス
+      dockerfile: Dockerfile
+    container_name: team-alpha
+    command: ["-H", "uecda-server", "-p", "42485", "-n", "TeamAlpha"]
+    depends_on:
+      - uecda-server
+    networks:
+      - uecda-network
+    restart: on-failure
+
+  # 参加者2: Team Beta
+  team-beta:
+    build:
+      context: ./participants/team-beta
+      dockerfile: Dockerfile
+    container_name: team-beta
+    command: ["-H", "uecda-server", "-p", "42485", "-n", "TeamBeta"]
+    depends_on:
+      - uecda-server
+    networks:
+      - uecda-network
+    restart: on-failure
+
+  # 参加者3: Team Gamma
+  team-gamma:
+    build:
+      context: ./participants/team-gamma
+      dockerfile: Dockerfile
+    container_name: team-gamma
+    command: ["-H", "uecda-server", "-p", "42485", "-n", "TeamGamma"]
+    depends_on:
+      - uecda-server
+    networks:
+      - uecda-network
+    restart: on-failure
+
+  # 参加者4: Team Delta
+  team-delta:
+    build:
+      context: ./participants/team-delta
+      dockerfile: Dockerfile
+    container_name: team-delta
+    command: ["-H", "uecda-server", "-p", "42485", "-n", "TeamDelta"]
+    depends_on:
+      - uecda-server
+    networks:
+      - uecda-network
+    restart: on-failure
+
+  # 参加者5: Team Epsilon
+  team-epsilon:
+    build:
+      context: ./participants/team-epsilon
+      dockerfile: Dockerfile
+    container_name: team-epsilon
+    command: ["-H", "uecda-server", "-p", "42485", "-n", "TeamEpsilon"]
+    depends_on:
+      - uecda-server
+    networks:
+      - uecda-network
+    restart: on-failure
+
+networks:
+  uecda-network:
+    driver: bridge

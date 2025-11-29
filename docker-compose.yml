@@ -1,0 +1,88 @@
+# UECda 対戦用 Docker Compose設定
+#
+# 使い方:
+#   docker compose up --build           # サーバー + クライアント5台で対戦
+#   docker compose up -d uecda-server   # サーバーのみ起動
+#   UECDA_NUM_GAMES=100 docker compose up --build  # ゲーム数を指定
+
+services:
+  # ゲームサーバー
+  uecda-server:
+    build:
+      context: ./uecda_server
+      dockerfile: Dockerfile
+    container_name: uecda-server
+    ports:
+      - "42485:42485"
+    command: ["--num-games", "${UECDA_NUM_GAMES:-10}"]
+    networks:
+      - uecda-network
+
+  # クライアント1
+  client-1:
+    build:
+      context: ./uecda_client
+      dockerfile: Dockerfile
+    container_name: uecda-client-1
+    command: ["-H", "uecda-server", "-p", "42485", "-n", "Client1"]
+    depends_on:
+      - uecda-server
+    networks:
+      - uecda-network
+    restart: on-failure
+
+  # クライアント2
+  client-2:
+    build:
+      context: ./uecda_client
+      dockerfile: Dockerfile
+    container_name: uecda-client-2
+    command: ["-H", "uecda-server", "-p", "42485", "-n", "Client2"]
+    depends_on:
+      - uecda-server
+    networks:
+      - uecda-network
+    restart: on-failure
+
+  # クライアント3
+  client-3:
+    build:
+      context: ./uecda_client
+      dockerfile: Dockerfile
+    container_name: uecda-client-3
+    command: ["-H", "uecda-server", "-p", "42485", "-n", "Client3"]
+    depends_on:
+      - uecda-server
+    networks:
+      - uecda-network
+    restart: on-failure
+
+  # クライアント4
+  client-4:
+    build:
+      context: ./uecda_client
+      dockerfile: Dockerfile
+    container_name: uecda-client-4
+    command: ["-H", "uecda-server", "-p", "42485", "-n", "Client4"]
+    depends_on:
+      - uecda-server
+    networks:
+      - uecda-network
+    restart: on-failure
+
+  # クライアント5
+  client-5:
+    build:
+      context: ./uecda_client
+      dockerfile: Dockerfile
+    container_name: uecda-client-5
+    command: ["-H", "uecda-server", "-p", "42485", "-n", "Client5"]
+    depends_on:
+      - uecda-server
+    networks:
+      - uecda-network
+    restart: on-failure
+
+networks:
+  uecda-network:
+    driver: bridge

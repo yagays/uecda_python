@@ -15,9 +15,31 @@ UECda（大貧民/大富豪）ゲームのPython実装です。
 - Python 3.11以上
 - [uv](https://github.com/astral-sh/uv) (パッケージマネージャー)
 
+**Docker環境の場合:**
+- Docker 20.10以上
+- Docker Compose v2以上
+
 ## クイックスタート
 
-### 1. インストール
+### Docker環境（推奨）
+
+```bash
+# リポジトリをクローン
+git clone https://github.com/your-org/uecda_python.git
+cd uecda_python
+
+# 5人対戦を実行（10ゲーム）
+docker compose up --build
+
+# ゲーム数を指定
+UECDA_NUM_GAMES=100 docker compose up --build
+```
+
+詳細は [docs/docker.md](docs/docker.md) を参照してください。
+
+### ローカル環境
+
+#### 1. インストール
 
 ```bash
 # サーバーとクライアントの依存関係をインストール
@@ -25,7 +47,7 @@ cd uecda_server && uv sync && cd ..
 cd uecda_client && uv sync && cd ..
 ```
 
-### 2. ゲーム実行
+#### 2. ゲーム実行
 
 スクリプトを使用して、サーバーと5台のクライアントを一括起動できます：
 
@@ -37,7 +59,7 @@ cd uecda_client && uv sync && cd ..
 ./scripts/run_game.sh 10
 ```
 
-### 3. 個別起動
+#### 3. 個別起動
 
 サーバーとクライアントを個別に起動する場合：
 
@@ -58,10 +80,16 @@ uv run python -m uecda_client.main -n "Player2"
 ```
 uecda_python/
 ├── README.md                    # このファイル
+├── docker-compose.yml           # Docker対戦用設定
+├── docker-compose.tournament.yml # トーナメント用テンプレート
+├── docs/
+│   └── docker.md                # Docker環境ガイド
 ├── uecda_server/                # Pythonサーバー実装
+│   ├── Dockerfile
 │   ├── README.md                # サーバー詳細ドキュメント
 │   └── ...
 ├── uecda_client/                # Pythonクライアント実装
+│   ├── Dockerfile
 │   ├── README.md                # クライアント詳細ドキュメント
 │   └── ...
 └── scripts/                     # 実行スクリプト
@@ -74,6 +102,7 @@ uecda_python/
 
 - [サーバー詳細](uecda_server/README.md) - 設定オプション、ルール、アーキテクチャ
 - [クライアント詳細](uecda_client/README.md) - コマンドライン引数、戦略AI、カスタム戦略の実装
+- [Docker環境](docs/docker.md) - Docker環境でのセットアップ、トーナメント開催
 
 ## C言語実装との互換性
 
