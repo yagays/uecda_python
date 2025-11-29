@@ -157,7 +157,25 @@ UECDA_NUM_GAMES=1000 docker compose -f docker-compose.tournament.yml up --build
 ```bash
 # ログ確認
 docker compose -f docker-compose.tournament.yml logs uecda-server
+
+# ゲームログファイル（JSONL形式）
+cat logs/game_log.jsonl
 ```
+
+## ゲームログ
+
+対戦結果は `logs/game_log.jsonl` にJSONL形式で保存されます。各ゲームの詳細な記録が含まれます。
+
+```bash
+# ログの確認
+cat logs/game_log.jsonl | jq .
+
+# ログビューアで確認
+cd uecda_server
+uv run python -m uecda_server.log_viewer ../logs/game_log.jsonl
+```
+
+詳細は [docs/game-log.md](game-log.md) を参照してください。
 
 ## トラブルシューティング
 
@@ -192,6 +210,8 @@ CMD ["-H", "uecda-server", "-p", "42485", "-n", "Client"]
 uecda_python/
 ├── docker-compose.yml              # デフォルト5人対戦用
 ├── docker-compose.tournament.yml   # トーナメント用テンプレート
+├── logs/                           # ゲームログ出力先
+│   └── game_log.jsonl
 ├── uecda_server/
 │   ├── Dockerfile
 │   └── .dockerignore

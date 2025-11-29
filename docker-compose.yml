@@ -14,7 +14,9 @@ services:
     container_name: uecda-server
     ports:
       - "42485:42485"
-    command: ["--num-games", "${UECDA_NUM_GAMES:-10}"]
+    command: ["--num-games", "${UECDA_NUM_GAMES:-10}", "--game-log", "/app/logs/game_log.jsonl"]
+    volumes:
+      - ./logs:/app/logs
     networks:
       - uecda-network
 
