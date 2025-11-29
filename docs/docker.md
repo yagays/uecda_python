@@ -164,15 +164,24 @@ cat logs/game_log.jsonl
 
 ## ゲームログ
 
-対戦結果は `logs/game_log.jsonl` にJSONL形式で保存されます。各ゲームの詳細な記録が含まれます。
+対戦結果は `logs/` ディレクトリにJSONL形式で保存されます。ファイル名は自動生成され、以下の形式になります：
+
+```
+{実行時刻}_{クライアント1}_{クライアント2}_..._{クライアントN}.jsonl
+```
+
+例: `20231115T143052_Client1_Client2_Client3_Client4_Client5.jsonl`
 
 ```bash
-# ログの確認
-cat logs/game_log.jsonl | jq .
+# ログファイル一覧
+ls -la logs/
+
+# 最新のログを確認
+cat logs/*.jsonl | jq .
 
 # ログビューアで確認
 cd uecda_server
-uv run python -m uecda_server.log_viewer ../logs/game_log.jsonl
+uv run python -m uecda_server.log_viewer ../logs/{ファイル名}.jsonl
 ```
 
 詳細は [docs/game-log.md](game-log.md) を参照してください。
@@ -211,7 +220,7 @@ uecda_python/
 ├── docker-compose.yml              # デフォルト5人対戦用
 ├── docker-compose.tournament.yml   # トーナメント用テンプレート
 ├── logs/                           # ゲームログ出力先
-│   └── game_log.jsonl
+│   └── {timestamp}_{players}.jsonl
 ├── uecda_server/
 │   ├── Dockerfile
 │   └── .dockerignore

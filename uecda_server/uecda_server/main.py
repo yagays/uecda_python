@@ -3,15 +3,35 @@
 import argparse
 import logging
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from uecda_server.config import load_config
 from uecda_server.game.engine import GameEngine
 from uecda_server.logging import GameLogConfig, GameLogger
+from uecda_server.models.player import Player
 from uecda_server.network.server import GameServer
 from uecda_server.utils.logger import GameDisplay, setup_logging
 
 logger = logging.getLogger(__name__)
+
+
+def generate_log_filename(log_dir: str, players: list[Player]) -> str:
+    """Generate log filename with timestamp and player names.
+
+    Format: {ISO timestamp}_{player1}_{player2}_..._{playerN}.jsonl
+
+    Args:
+        log_dir: Directory for log files.
+        players: List of connected players.
+
+    Returns:
+        Full path to log file.
+    """
+    timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    player_names = "_".join(p.name for p in players)
+    filename = f"{timestamp}_{player_names}.jsonl"
+    return str(Path(log_dir) / filename)
 
 
 def main() -> int:
@@ -55,7 +75,7 @@ def main() -> int:
     parser.add_argument(
         "--game-log",
         type=Path,
-        help="Path to game log file (JSONL format)",
+        help="Directory for game log files (filename auto-generated)",
     )
 
     args = parser.parse_args()
@@ -73,11 +93,9 @@ def main() -> int:
     if args.show_hands:
         config.logging.show_hands = True
 
-    # Setup game log config (CLI argument overrides config file)
-    game_log_config = GameLogConfig(
-        enabled=args.game_log is not None or config.game_log.enabled,
-        output_path=str(args.game_log) if args.game_log else config.game_log.output_path,
-    )
+    # Determine game log directory (CLI argument overrides config file)
+    game_log_enabled = args.game_log is not None or config.game_log.enabled
+    game_log_dir = str(args.game_log) if args.game_log else config.game_log.output_path
 
     # Setup logging
     setup_logging(config.logging.level)
@@ -89,8 +107,8 @@ def main() -> int:
     print(f"Port: {config.server.port}")
     print(f"Games: {config.game.num_games}")
     print(f"Players: {config.game.num_players}")
-    if game_log_config.enabled:
-        print(f"Game log: {game_log_config.output_path}")
+    if game_log_enabled:
+        print(f"Game log dir: {game_log_dir}")
     print()
 
     # Create and start server
@@ -106,6 +124,14 @@ def main() -> int:
                 on_connect=display.print_player_connected
             )
             display.print_all_connected(players)
+
+            # Create game log config with dynamic filename
+            if game_log_enabled:
+                log_path = generate_log_filename(game_log_dir, players)
+                game_log_config = GameLogConfig(enabled=True, output_path=log_path)
+                print(f"Game log: {log_path}")
+            else:
+                game_log_config = GameLogConfig(enabled=False)
 
             # Create game logger
             with GameLogger(game_log_config) as game_logger:
