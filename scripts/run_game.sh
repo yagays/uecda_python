@@ -31,7 +31,7 @@ echo ""
 # サーバー起動
 echo "サーバーを起動中..."
 cd "$ROOT_DIR/uecda_server"
-uv run python -m uecda_server.main --num-games "$NUM_GAMES" &
+uv run python -m uecda_server.main --num-games "$NUM_GAMES" --game-log "$ROOT_DIR/logs" &
 SERVER_PID=$!
 
 # サーバーが起動するまで待機

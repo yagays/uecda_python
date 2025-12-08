@@ -13,8 +13,8 @@ UECdaをDocker環境で実行するためのガイドです。
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/your-org/uecda_python.git
-cd uecda_python
+git clone https://github.com/your-org/open-uecda.git
+cd open-uecda
 
 # 対戦実行（10ゲーム）
 docker compose up --build
@@ -41,7 +41,7 @@ docker compose down
 ### Step 1: リポジトリのフォーク・クローン
 
 ```bash
-git clone https://github.com/your-org/uecda_python.git my-uecda-client
+git clone https://github.com/your-org/open-uecda.git my-uecda-client
 cd my-uecda-client/uecda_client
 ```
 
@@ -118,7 +118,7 @@ docker run --network host my-uecda-client -H localhost -p 42485 -n "MyBot"
 ### Step 1: 参加者のリポジトリを取得
 
 ```bash
-cd uecda_python
+cd open-uecda
 
 # participantsディレクトリを作成
 mkdir -p participants
@@ -216,7 +216,7 @@ CMD ["-H", "uecda-server", "-p", "42485", "-n", "Client"]
 ## ファイル構成
 
 ```
-uecda_python/
+open-uecda/
 ├── docker-compose.yml              # デフォルト5人対戦用
 ├── docker-compose.tournament.yml   # トーナメント用テンプレート
 ├── logs/                           # ゲームログ出力先

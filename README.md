@@ -1,4 +1,4 @@
-# uecda_python
+# open-uecda
 
 UECda（大貧民/大富豪）ゲームのPython実装です。
 
@@ -25,8 +25,8 @@ UECda（大貧民/大富豪）ゲームのPython実装です。
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/your-org/uecda_python.git
-cd uecda_python
+git clone https://github.com/your-org/open-uecda.git
+cd open-uecda
 
 # 5人対戦を実行（10ゲーム）
 docker compose up --build
@@ -78,7 +78,7 @@ uv run python -m uecda_client.main -n "Player2"
 ## リポジトリ構成
 
 ```
-uecda_python/
+open-uecda/
 ├── README.md                    # このファイル
 ├── docker-compose.yml           # Docker対戦用設定
 ├── docker-compose.tournament.yml # トーナメント用テンプレート
